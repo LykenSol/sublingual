@@ -81,7 +81,7 @@ fn test_file(path: &Path) -> Result<Outcome, Unsupported> {
             let root = subrust::parse::Node::read_and_parse_file(&path).map_err(|_| Unsupported)?;
 
             let mut runtime_env = subrust::eval::RuntimeEnv::default();
-            match runtime_env.eval_fn_main(&root) {
+            match runtime_env.eval_fn_main(root) {
                 Ok(()) => {
                     // Also run by compiling with `rustc`, and compare outputs.
                     match rustc_file_to_exe(&path) {

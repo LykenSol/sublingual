@@ -1,32 +1,34 @@
 //! Parse a subset of Rust using `syn`, so we don't need our parser for now.
 
-use std::rc::Rc;
 use syn::parse::Parser as _;
+
+// HACK(eddyb) using leaked `Box<T>` as `&'static T` references for convenience.
+pub type NodeRef = &'static Node;
 
 #[derive(Debug)]
 pub enum Node {
     // Definitions.
     /// `mod { ... }`
-    Mod(Rc<[Rc<Node>]>),
+    Mod(&'static [NodeRef]),
     /// `fn name() { body }`
     Fn {
-        name: Rc<str>,
-        body: Rc<Node>,
+        name: &'static str,
+        body: NodeRef,
     },
 
     // Expressions.
     /// `()`
     EUnit,
     /// `a; b`
-    ESeq(Rc<Node>, Rc<Node>),
+    ESeq(NodeRef, NodeRef),
     /// `name!(...args)`
     EMacCall {
-        name: Rc<str>,
-        args: Rc<[Rc<Node>]>,
+        name: &'static str,
+        args: &'static [NodeRef],
     },
 
     // Literals.
-    LStr(Rc<str>),
+    LStr(&'static str),
 }
 
 #[derive(Debug)]
@@ -42,7 +44,7 @@ pub enum ParseError {
 }
 
 impl Node {
-    pub fn read_and_parse_file(path: impl AsRef<std::path::Path>) -> Result<Rc<Self>, ParseError> {
+    pub fn read_and_parse_file(path: impl AsRef<std::path::Path>) -> Result<NodeRef, ParseError> {
         syn::parse_file(&std::fs::read_to_string(path).unwrap())
             .map_err(ParseError::Syn)?
             .lower()
@@ -53,21 +55,23 @@ impl Node {
 // NOTE(eddyb) this is not simply `impl From<syn::X> for Node` so that it can't
 // be called elsehwere, and also if we ever want to introduce some context type.
 trait Lower {
-    type Lowered: ?Sized;
-    fn lower(self) -> Result<Rc<Self::Lowered>, Unsupported>;
+    type Lowered: ?Sized + 'static;
+    fn lower(self) -> Result<&'static Self::Lowered, Unsupported>;
 }
 
-impl<T: Lower<Lowered = L>, L> Lower for Vec<T> {
-    type Lowered = [Rc<L>];
-    fn lower(self) -> Result<Rc<[Rc<L>]>, Unsupported> {
-        self.into_iter().map(T::lower).collect()
+impl<T: Lower<Lowered = L>, L: 'static> Lower for Vec<T> {
+    type Lowered = [&'static L];
+    fn lower(self) -> Result<&'static [&'static L], Unsupported> {
+        Ok(Box::leak(
+            self.into_iter().map(T::lower).collect::<Result<_, _>>()?,
+        ))
     }
 }
 
 impl Lower for syn::Ident {
     type Lowered = str;
-    fn lower(self) -> Result<Rc<str>, Unsupported> {
-        Ok(self.to_string().into())
+    fn lower(self) -> Result<&'static str, Unsupported> {
+        Ok(Box::leak(self.to_string().into()))
     }
 }
 
@@ -75,7 +79,7 @@ macro_rules! lower_syn_enums {
     ($($name:ident { $($variant:ident),* $(,)? }),* $(,)?) => {
         $(impl Lower for syn::$name {
             type Lowered = Node;
-            fn lower(self) -> Result<Rc<Node>, Unsupported> {
+            fn lower(self) -> Result<NodeRef, Unsupported> {
                 match self {
                     $(syn::$name::$variant(x) => x.lower(),)*
                     _ => Err(Unsupported {
@@ -102,7 +106,7 @@ macro_rules! lower_syn_structs {
     ($($name:ident { $($fields:tt)* } $(= $this:ident)? $(@ $span:ident)? $(if $cond:expr)? => $node:expr),* $(,)?) => {
         $(impl Lower for syn::$name {
             type Lowered = Node;
-            fn lower(self) -> Result<Rc<Node>, Unsupported> {
+            fn lower(self) -> Result<NodeRef, Unsupported> {
                 let _span = syn::spanned::Spanned::span(&self);
                 match self {
                     syn::$name { $($fields)* } => {
@@ -124,7 +128,7 @@ macro_rules! lower_syn_structs {
                             $node
                         };
                         #[allow(unreachable_code)]
-                        Ok(Rc::new(_node))
+                        Ok(Box::leak(Box::new(_node)))
                     }
                     #[allow(unreachable_patterns)]
                     _ => Err(Unsupported {
@@ -176,7 +180,7 @@ lower_syn_structs! {
                 _ => unreachable!(),
             }
         } else {
-            Rc::new(EUnit)
+            Box::leak(Box::new(EUnit))
         };
         for stmt in stmts.into_iter().rev() {
             match stmt {
@@ -194,7 +198,7 @@ lower_syn_structs! {
                 // observe this with e.g. `{ 0 } {}` vs `{ 0 }; {}`, but for now
                 // it's simpler to just assume that they're all the same.
                 syn::Stmt::Expr(e) | syn::Stmt::Semi(e, _) => {
-                    expr = Rc::new(ESeq(e.lower()?, expr));
+                    expr = Box::leak(Box::new(ESeq(e.lower()?, expr)));
                 }
             }
         }
@@ -213,7 +217,7 @@ lower_syn_structs! {
     } if is_empty(attrs) && segments.len() == 1 && segments.first().unwrap().arguments.is_empty()
     => EMacCall {
         name: segments.into_iter().next().unwrap().ident.lower()?,
-        args: {
+        args: Box::leak({
             let span = syn::spanned::Spanned::span(&tokens);
             syn::punctuated::Punctuated::<syn::Expr, syn::Token![,]>::parse_terminated
                 .parse2(tokens).map_err(|_| {
@@ -222,8 +226,8 @@ lower_syn_structs! {
                         reason: "ExprMacro with non-Expr inputs".to_string(),
                     }
                 })?.into_iter().map(|e| e.lower()).collect::<Result<_, _>>()?
-        },
+        }),
     },
 
-    LitStr { .. } = lit if lit.suffix().is_empty() => LStr(lit.value().into()),
+    LitStr { .. } = lit if lit.suffix().is_empty() => LStr(Box::leak(lit.value().into())),
 }

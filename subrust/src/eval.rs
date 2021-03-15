@@ -1,4 +1,4 @@
-use crate::parse::Node::{self, *};
+use crate::parse::{Node::*, NodeRef};
 
 #[derive(Default)]
 pub struct RuntimeEnv {
@@ -11,7 +11,7 @@ pub enum Error {
 }
 
 impl RuntimeEnv {
-    pub fn eval_fn_main(&mut self, root: &Node) -> Result<(), Error> {
+    pub fn eval_fn_main(&mut self, root: NodeRef) -> Result<(), Error> {
         // FIXME(eddyb) make a macro that expects a certain type of `Node`.
         let root_defs = match root {
             Mod(defs) => defs,
@@ -19,12 +19,12 @@ impl RuntimeEnv {
         };
         let fn_main = root_defs
             .iter()
-            .find(|&def| matches!(&**def, Fn { name, .. } if &name[..] == "main"))
+            .find(|def| matches!(def, Fn { name: "main", .. }))
             .ok_or(Error::NoFnMain)?;
         self.eval_fn(fn_main)
     }
 
-    pub fn eval_fn(&mut self, f: &Node) -> Result<(), Error> {
+    pub fn eval_fn(&mut self, f: NodeRef) -> Result<(), Error> {
         // FIXME(eddyb) make a macro that expects a certain type of `Node`.
         let body = match f {
             Fn { body, .. } => body,
@@ -33,7 +33,7 @@ impl RuntimeEnv {
         self.eval_expr(body)
     }
 
-    pub fn eval_expr(&mut self, e: &Node) -> Result<(), Error> {
+    pub fn eval_expr(&mut self, e: NodeRef) -> Result<(), Error> {
         match e {
             Mod(_) | Fn { .. } => unreachable!(),
 
@@ -42,32 +42,19 @@ impl RuntimeEnv {
                 self.eval_expr(a)?;
                 self.eval_expr(b)
             }
-            EMacCall { name, args } => {
-                // FIXME(eddyb) name resolve (and even expand) macros.
-                match &name[..] {
-                    "println" => match &args[..] {
-                        [lit] => match &**lit {
-                            LStr(s) => {
-                                self.stdout += s;
-                                self.stdout += "\n";
-                                Ok(())
-                            }
-                            _ => Err(Error::Unsupported {
-                                reason: format!(
-                                    "first argument of `{}!` not a string literal",
-                                    name
-                                ),
-                            }),
-                        },
-                        _ => Err(Error::Unsupported {
-                            reason: format!("formatting in `{}!`", name),
-                        }),
-                    },
-                    _ => Err(Error::Unsupported {
-                        reason: format!("unknown macro `{}!`", name),
-                    }),
-                }
+
+            // FIXME(eddyb) name resolve (and even expand) macros.
+            EMacCall {
+                name: "println",
+                args: [LStr(s)],
+            } => {
+                self.stdout += s;
+                self.stdout += "\n";
+                Ok(())
             }
+            EMacCall { name, args } => Err(Error::Unsupported {
+                reason: format!("unsupported macro `{}!` (with arguments `{:?})", name, args),
+            }),
 
             LStr(_) => Err(Error::Unsupported {
                 reason: format!("{:?}", e),
