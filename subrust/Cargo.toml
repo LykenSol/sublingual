@@ -1,0 +1,17 @@
+[package]
+name = "sublingual-rust"
+version = "0.1.0"
+authors = ["Eduard-Mihai Burtescu <eddyb@lyken.rs>"]
+edition = "2018"
+repository = "https://github.com/eddyb/sublingual"
+license = "MIT/Apache-2.0"
+description = "sublingual's toy version of Rust"
+
+[dependencies]
+proc-macro2 = "1.0.24"
+syn = { version = "1.0.64", features = [ "full", "extra-traits" ] }
+
+[dev-dependencies]
+pretty_assertions = "0.7.1"
+rayon = "1.5.0"
+walkdir = "2.3.1"

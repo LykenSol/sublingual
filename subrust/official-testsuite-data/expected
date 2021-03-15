@@ -1,0 +1,334 @@
+{
+    "codegen/abi-main-signature-16bit-c-int.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "codegen/abi-main-signature-32bit-c-int.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "mir-opt/graphviz.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "mir-opt/spanview-block.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "mir-opt/spanview-statement.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "mir-opt/spanview-terminator.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "pretty/block-comment-multiple-asterisks.rs": NoFnMain,
+    "pretty/block-comment-trailing-whitespace.rs": NoFnMain,
+    "pretty/block-comment-trailing-whitespace2.rs": NoFnMain,
+    "pretty/dollar-crate.rs": RanSuccessfully {
+        stdout: "rust\n",
+    },
+    "pretty/example1.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "pretty/example2.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "pretty/expanded-and-path-remap-80832.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "pretty/issue-12590-b.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "pretty/issue-74745.rs": NoFnMain,
+    "run-make-fulldeps/bare-outfile/foo.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/codegen-options-parsing/dummy.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/crate-name-priority/foo.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/cross-lang-lto/main.rs": RanSuccessfully {
+        stdout: "Hello World\n",
+    },
+    "run-make-fulldeps/error-writing-dependencies/foo.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/extern-flag-fun/bar.rs": NoFnMain,
+    "run-make-fulldeps/extra-filename-with-temp-outputs/foo.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/fpic/hello.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/hir-tree/input.rs": RanSuccessfully {
+        stdout: "Hello, Rustaceans!\n",
+    },
+    "run-make-fulldeps/incr-add-rust-src-component/main.rs": RanSuccessfully {
+        stdout: "Hello World\n",
+    },
+    "run-make-fulldeps/issue-14698/foo.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/issue-26092/blank.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/issue-30063/foo.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/issue-33329/main.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/link-arg/empty.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/ls-metadata/foo.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/mixing-formats/foo.rs": NoFnMain,
+    "run-make-fulldeps/multiple-emits/foo.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/no-intermediate-extras/foo.rs": NoFnMain,
+    "run-make-fulldeps/output-filename-conflicts-with-directory/foo.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/output-filename-overwrites-input/foo.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/override-aliased-flags/main.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/pgo-gen/test.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/pgo-gen-lto/test.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/pgo-gen-no-imp-symbols/test.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/profile/test.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/prune-link-args/empty.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/relro-levels/hello.rs": RanSuccessfully {
+        stdout: "Hello, world!\n",
+    },
+    "run-make-fulldeps/split-debuginfo/foo.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/split-dwarf/foo.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/target-cpu-native/foo.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/weird-output-filenames/foo.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "run-make-fulldeps/windows-binary-no-external-deps/hello.rs": RanSuccessfully {
+        stdout: "Hello World!\n",
+    },
+    "run-make-fulldeps/windows-spawn/hello.rs": RanSuccessfully {
+        stdout: "Hello World!\n",
+    },
+    "rustdoc/auxiliary/empty.rs": NoFnMain,
+    "rustdoc/crate-version.rs": NoFnMain,
+    "rustdoc-ui/coverage/empty.rs": NoFnMain,
+    "rustfix/empty-no-fixes.rs": NoFnMain,
+    "rustfix/main-no-fixes.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/auxiliary/removing-extern-crate.rs": NoFnMain,
+    "ui/auxiliary/rustc-rust-log-aux.rs": NoFnMain,
+    "ui/bad/bad-lint-cap.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/chalkify/println.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/conditional-compilation/cfg-arg-invalid-1.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/conditional-compilation/cfg-arg-invalid-2.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/conditional-compilation/cfg-arg-invalid-3.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/conditional-compilation/cfg-arg-invalid-4.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/conditional-compilation/cfg-arg-invalid-5.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/conditional-compilation/cfg-arg-invalid-6.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/directory_ownership/foo/mod_file_not_owning/aux2.rs": NoFnMain,
+    "ui/directory_ownership/foo/mod_file_not_owning_aux2.rs": NoFnMain,
+    "ui/directory_ownership/macro_expanded_mod_helper/foo/bar.rs": NoFnMain,
+    "ui/directory_ownership/mod_file_not_owning_aux1/mod_file_not_owning_aux2.rs": NoFnMain,
+    "ui/directory_ownership/mod_file_not_owning_aux2.rs": NoFnMain,
+    "ui/editions/auxiliary/edition-extern-crate-allowed.rs": NoFnMain,
+    "ui/error-codes/E0601.rs": NoFnMain,
+    "ui/error-codes/E0602.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/explain.rs": NoFnMain,
+    "ui/extern-flag/empty-extern-arg.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/fat-lto.rs": RanSuccessfully {
+        stdout: "hello!\n",
+    },
+    "ui/feature-gates/feature-gate-static-nobundle-2.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/hello2021.rs": RanSuccessfully {
+        stdout: "hello, 2021\n",
+    },
+    "ui/hello_world/main.rs": RanSuccessfully {
+        stdout: "Hello, world!\n",
+    },
+    "ui/issues/issue-11154.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/issues/issue-16597-empty.rs": NoFnMain,
+    "ui/issues/issue-37131.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/issues/issue-44056.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/issues/issue-70381.rs": OnlyRustcFailed(
+        ```
+        error: 1 positional argument in format string, but no arguments were given
+         --> official-testsuite-data/rust/src/test/ui/issues/issue-70381.rs:4:16
+          |
+        4 |   println!("\r¡{}")
+          |                ^^
+        
+        error: aborting due to previous error
+        
+        ```,
+    ),
+    "ui/json-and-color.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/json-and-error-format.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/json-invalid.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/json-short.rs": NoFnMain,
+    "ui/linkage-attr/issue-10755.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/lint/auxiliary/lint_unused_extern_crate4.rs": NoFnMain,
+    "ui/lint/auxiliary/lint_unused_extern_crate5.rs": NoFnMain,
+    "ui/lint/lint-unknown-lint-cmdline.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/loud_ui.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/lto-and-no-bitcode-in-rlib.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/lto-many-codegen-units.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/macros/macro-comma-support.rs": OnlyRustcFailed(
+        ```
+        error: lel
+         --> official-testsuite-data/rust/src/test/ui/macros/macro-comma-support.rs:6:5
+          |
+        6 |     compile_error!("lel"); //~ ERROR lel
+          |     ^^^^^^^^^^^^^^^^^^^^^^
+        
+        error: lel
+         --> official-testsuite-data/rust/src/test/ui/macros/macro-comma-support.rs:7:5
+          |
+        7 |     compile_error!("lel",); //~ ERROR lel
+          |     ^^^^^^^^^^^^^^^^^^^^^^^
+        
+        error: aborting due to 2 previous errors
+        
+        ```,
+    ),
+    "ui/macros/not-utf8.rs": NoFnMain,
+    "ui/macros/trace-macro.rs": RanSuccessfully {
+        stdout: "Hello, World!\n",
+    },
+    "ui/manual/manual-link-bad-form.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/manual/manual-link-bad-kind.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/manual/manual-link-bad-search-path.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/manual/manual-link-framework.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/missing/missing-main.rs": NoFnMain,
+    "ui/modules_and_files_visibility/mod_file_disambig_aux/mod.rs": NoFnMain,
+    "ui/modules_and_files_visibility/mod_file_disambig_aux.rs": NoFnMain,
+    "ui/non_modrs_mods_and_inline_mods/x/y/z/mod.rs": NoFnMain,
+    "ui/panic-runtime/abort-link-to-unwind-dylib.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/panic-runtime/bad-panic-flag1.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/panic-runtime/bad-panic-flag2.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/parser/lex-bare-cr-nondoc-comment.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/parser/shebang/shebang-comment.rs": RanSuccessfully {
+        stdout: "a valid shebang (that is also a rust comment)\n",
+    },
+    "ui/parser/shebang/shebang-empty.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/parser/shebang/shebang-space.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/parser/shebang/valid-shebang.rs": RanSuccessfully {
+        stdout: "Hello World!\n",
+    },
+    "ui/proc-macro/module.rs": NoFnMain,
+    "ui/proc-macro/outer/inner.rs": NoFnMain,
+    "ui/proc-macro/two-crate-types-2.rs": NoFnMain,
+    "ui/rfcs/rfc-1937-termination-trait/termination-trait-for-empty.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/rmeta/emit-artifact-notifications.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/rmeta/emit-metadata-obj.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/rust-2018/auxiliary/macro-use-warned-against2.rs": NoFnMain,
+    "ui/rust-2018/uniform-paths/auxiliary/issue-56596.rs": NoFnMain,
+    "ui/rustc-rust-log.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/thinlto/all-crates.rs": RanSuccessfully {
+        stdout: "hello!\n",
+    },
+    "ui/unknown-llvm-arg.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/unused-crate-deps/warn-cmdline-static.rs": RanSuccessfully {
+        stdout: "",
+    },
+    "ui/unused-crate-deps/warn-cmdline.rs": RanSuccessfully {
+        stdout: "",
+    },
+}
