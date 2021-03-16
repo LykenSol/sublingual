@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use rayon::prelude::*;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -38,10 +39,19 @@ fn rustc_file_to_exe(path: &Path) -> Result<PathBuf, String> {
     }
 }
 
-struct Unsupported;
-
 #[derive(Debug)]
 enum Outcome {
+    /// Completely ignored, in order to avoid e.g. stack overflows in `syn`.
+    Skipped,
+
+    /// Parsing with `syn` failed.
+    // FIXME(eddyb) make sure that `rustc` *also* fails to parse the same file.
+    SynFailed,
+
+    Unsupported {
+        reason: String,
+    },
+
     /// Nothing to run, as there is no `fn main`.
     NoFnMain,
 
@@ -53,10 +63,10 @@ enum Outcome {
     },
 }
 
-fn test_file(path: &Path) -> Result<Outcome, Unsupported> {
+fn test_file(path: &Path) -> Outcome {
     // HACK(eddyb) bypass some `syn` stack overflows.
     if path.ends_with("src/test/ui/issues/issue-74564-if-expr-stack-overflow.rs") {
-        return Err(Unsupported);
+        return Outcome::Skipped;
     }
 
     // HACK(eddyb) more `syn` stack overflows, but only in debug mode.
@@ -69,15 +79,22 @@ fn test_file(path: &Path) -> Result<Outcome, Unsupported> {
         .iter()
         .any(|skip_path| path.ends_with(skip_path));
     if skip_only_in_debug && cfg!(debug_assertions) {
-        return Err(Unsupported);
+        return Outcome::Skipped;
     }
 
     let path_buf = path.to_path_buf();
-    let result = thread::Builder::new()
+    let outcome = thread::Builder::new()
         .name(path.to_string_lossy().into())
         .spawn(move || {
             let path = &path_buf;
-            let root = subrust::parse::Node::read_and_parse_file(path).map_err(|_| Unsupported)?;
+            let root = match subrust::parse::Node::read_and_parse_file(path) {
+                Ok(root) => root,
+                Err(subrust::parse::ParseError::Syn(_)) => return Outcome::SynFailed,
+                Err(subrust::parse::ParseError::Unsupported(subrust::parse::Unsupported {
+                    reason,
+                    ..
+                })) => return Outcome::Unsupported { reason },
+            };
 
             let mut runtime_env = subrust::eval::RuntimeEnv::default();
             match runtime_env.eval_fn_main(root) {
@@ -96,15 +113,17 @@ fn test_file(path: &Path) -> Result<Outcome, Unsupported> {
                                 CodeBlocks("")
                             );
 
-                            Ok(Outcome::RanSuccessfully {
+                            Outcome::RanSuccessfully {
                                 stdout: runtime_env.stdout,
-                            })
+                            }
                         }
-                        Err(rustc_stderr) => Ok(Outcome::OnlyRustcFailed(CodeBlocks(rustc_stderr))),
+                        Err(rustc_stderr) => Outcome::OnlyRustcFailed(CodeBlocks(rustc_stderr)),
                     }
                 }
-                Err(subrust::eval::Error::NoFnMain) => Ok(Outcome::NoFnMain),
-                Err(subrust::eval::Error::Unsupported { .. }) => Err(Unsupported),
+                Err(subrust::eval::Error::NoFnMain) => Outcome::NoFnMain,
+                Err(subrust::eval::Error::Unsupported { reason }) => {
+                    Outcome::Unsupported { reason }
+                }
             }
         })
         .unwrap()
@@ -114,24 +133,23 @@ fn test_file(path: &Path) -> Result<Outcome, Unsupported> {
     // HACK(eddyb) if we'd be skipping this file in debug mode, make sure we can't
     // start supporting it accidentally and cause debug vs release differences.
     if skip_only_in_debug {
-        match result {
-            Err(Unsupported) => {}
-            Ok(outcome) => panic!(
+        match outcome {
+            Outcome::Unsupported { .. } => {}
+            _ => panic!(
                 "`{}` would be skipped in debug mode, but instead of `Unsupported` it's `{:#?}`",
                 path.display(),
                 outcome
             ),
         };
+        return Outcome::Skipped;
     }
 
-    result
+    outcome
 }
 
 #[test]
 fn official_testsuite() {
     let data_dir = Path::new("official-testsuite-data");
-    let expected_path = data_dir.join("expected");
-    let expected = fs::read_to_string(&expected_path).unwrap_or_default();
     let test_dir = data_dir.join("rust/src/test");
 
     let files = WalkDir::new(&test_dir)
@@ -139,24 +157,67 @@ fn official_testsuite() {
         .map(Result::unwrap)
         .filter(|entry| entry.path().extension().map_or(false, |ext| ext == "rs"));
 
-    let found = format!(
-        "{:#?}\n",
-        files
-            .par_bridge()
-            .filter_map(|entry| {
-                Some((
-                    entry.path().strip_prefix(&test_dir).unwrap().to_path_buf(),
-                    test_file(entry.path()).ok()?,
-                ))
-            })
-            .collect::<BTreeMap<_, _>>()
-    );
+    #[derive(Default)]
+    struct TestResults {
+        reported_outcomes: BTreeMap<PathBuf, Outcome>,
+        unsupported_counts: IndexMap<String, usize>,
+    }
 
-    if found != expected {
-        if env::var("BLESS").is_ok() {
-            fs::write(expected_path, found).unwrap();
-        } else {
-            panic!(
+    let mut results = files
+        .par_bridge()
+        .fold(TestResults::default, |mut results, entry| {
+            let outcome = test_file(entry.path());
+            match outcome {
+                Outcome::Skipped | Outcome::SynFailed => {}
+                Outcome::Unsupported { mut reason } => {
+                    // HACK(eddyb) avoid polluting the output with very long AST dumps.
+                    if reason.len() > 81 {
+                        reason = format!("{}…{}", &reason[..40], &reason[reason.len() - 40..]);
+                    }
+                    *results.unsupported_counts.entry(reason).or_default() += 1;
+                }
+                _ => {
+                    results.reported_outcomes.insert(
+                        entry.path().strip_prefix(&test_dir).unwrap().to_path_buf(),
+                        outcome,
+                    );
+                }
+            }
+            results
+        })
+        .reduce(TestResults::default, |mut a, b| {
+            a.reported_outcomes.extend(b.reported_outcomes);
+            for (reason, count) in b.unsupported_counts {
+                *a.unsupported_counts.entry(reason).or_default() += count;
+            }
+            a
+        });
+
+    // Sort unsupported (per-reason) counts, by count, descending.
+    results
+        .unsupported_counts
+        .sort_by(|a_reason, a_count, b_reason, b_count| {
+            let (a, b) = ((a_reason, a_count), (b_reason, b_count));
+            let key = |(reason, count)| (std::cmp::Reverse(count), reason);
+            key(a).cmp(&key(b))
+        });
+
+    for (found, expected_path) in &[
+        (
+            format!("{:#?}\n", results.reported_outcomes),
+            data_dir.join("expected"),
+        ),
+        (
+            format!("{:#?}\n", results.unsupported_counts),
+            data_dir.join("unsupported"),
+        ),
+    ] {
+        let expected = fs::read_to_string(&expected_path).unwrap_or_default();
+        if *found != expected {
+            if env::var("BLESS").is_ok() {
+                fs::write(expected_path, found).unwrap();
+            } else {
+                panic!(
                 "tests results differ from `{}`:\n\n\
                  {}\n\
                  note: if the new results are correct, you can replace `{0}`\n\
@@ -167,6 +228,7 @@ fn official_testsuite() {
                     &CodeBlocks(found)
                 )
             );
+            }
         }
     }
 }

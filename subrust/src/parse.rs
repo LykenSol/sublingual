@@ -33,8 +33,8 @@ pub enum Node {
 
 #[derive(Debug)]
 pub struct Unsupported {
-    span: proc_macro2::Span,
-    reason: String,
+    pub span: proc_macro2::Span,
+    pub reason: String,
 }
 
 #[derive(Debug)]

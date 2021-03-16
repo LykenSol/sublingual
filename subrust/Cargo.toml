@@ -12,6 +12,7 @@ proc-macro2 = "1.0.24"
 syn = { version = "1.0.64", features = [ "full", "extra-traits" ] }
 
 [dev-dependencies]
+indexmap = "1.6.2"
 pretty_assertions = "0.7.1"
 rayon = "1.5.0"
 walkdir = "2.3.1"
