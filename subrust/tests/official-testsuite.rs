@@ -60,31 +60,30 @@ fn test_file(path: &Path) -> Result<Outcome, Unsupported> {
     }
 
     // HACK(eddyb) more `syn` stack overflows, but only in debug mode.
-    #[cfg(debug_assertions)]
-    {
-        let skip_paths = [
-            "src/test/ui/super-fast-paren-parsing.rs",
-            "src/test/ui/closures/deeply-nested_closures.rs",
-            "src/test/ui/weird-exprs.rs",
-        ];
-        for skip_path in &skip_paths {
-            if path.ends_with(skip_path) {
-                return Err(Unsupported);
-            }
-        }
+    let skip_only_in_debug_paths = [
+        "src/test/ui/super-fast-paren-parsing.rs",
+        "src/test/ui/closures/deeply-nested_closures.rs",
+        "src/test/ui/weird-exprs.rs",
+    ];
+    let skip_only_in_debug = skip_only_in_debug_paths
+        .iter()
+        .any(|skip_path| path.ends_with(skip_path));
+    if skip_only_in_debug && cfg!(debug_assertions) {
+        return Err(Unsupported);
     }
 
-    let path = path.to_path_buf();
-    thread::Builder::new()
+    let path_buf = path.to_path_buf();
+    let result = thread::Builder::new()
         .name(path.to_string_lossy().into())
         .spawn(move || {
-            let root = subrust::parse::Node::read_and_parse_file(&path).map_err(|_| Unsupported)?;
+            let path = &path_buf;
+            let root = subrust::parse::Node::read_and_parse_file(path).map_err(|_| Unsupported)?;
 
             let mut runtime_env = subrust::eval::RuntimeEnv::default();
             match runtime_env.eval_fn_main(root) {
                 Ok(()) => {
                     // Also run by compiling with `rustc`, and compare outputs.
-                    match rustc_file_to_exe(&path) {
+                    match rustc_file_to_exe(path) {
                         Ok(exe) => {
                             let exe_output = Command::new(exe).output().unwrap();
                             assert!(exe_output.status.success());
@@ -110,7 +109,22 @@ fn test_file(path: &Path) -> Result<Outcome, Unsupported> {
         })
         .unwrap()
         .join()
-        .unwrap()
+        .unwrap();
+
+    // HACK(eddyb) if we'd be skipping this file in debug mode, make sure we can't
+    // start supporting it accidentally and cause debug vs release differences.
+    if skip_only_in_debug {
+        match result {
+            Err(Unsupported) => {}
+            Ok(outcome) => panic!(
+                "`{}` would be skipped in debug mode, but instead of `Unsupported` it's `{:#?}`",
+                path.display(),
+                outcome
+            ),
+        };
+    }
+
+    result
 }
 
 #[test]
