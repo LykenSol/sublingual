@@ -1,2 +1,3 @@
 # HACK(eddyb) get some syntax highlighting without a `.rs` extension.
 subrust/official-testsuite-data/expected linguist-language=Rust
+subrust/official-testsuite-data/unsupported linguist-language=Rust
