@@ -35,7 +35,7 @@ impl RuntimeEnv {
 
     pub fn eval_expr(&mut self, e: NodeRef) -> Result<(), Error> {
         match e {
-            Mod(_) | Fn { .. } => unreachable!(),
+            Mod(_) | Fn { .. } | ErrUnsupportedSyntax => unreachable!(),
 
             EUnit => Ok(()),
             ESeq(a, b) => {

@@ -49,7 +49,7 @@ enum Outcome {
     SynFailed,
 
     Unsupported {
-        reason: String,
+        reasons: Vec<String>,
     },
 
     /// Nothing to run, as there is no `fn main`.
@@ -90,10 +90,14 @@ fn test_file(path: &Path) -> Outcome {
             let root = match subrust::parse::Node::read_and_parse_file(path) {
                 Ok(root) => root,
                 Err(subrust::parse::ParseError::Syn(_)) => return Outcome::SynFailed,
-                Err(subrust::parse::ParseError::Unsupported(subrust::parse::Unsupported {
-                    reason,
-                    ..
-                })) => return Outcome::Unsupported { reason },
+                Err(subrust::parse::ParseError::Unsupported(errors)) => {
+                    return Outcome::Unsupported {
+                        reasons: errors
+                            .into_iter()
+                            .map(|subrust::parse::Unsupported { reason, .. }| reason)
+                            .collect(),
+                    }
+                }
             };
 
             let mut runtime_env = subrust::eval::RuntimeEnv::default();
@@ -121,9 +125,9 @@ fn test_file(path: &Path) -> Outcome {
                     }
                 }
                 Err(subrust::eval::Error::NoFnMain) => Outcome::NoFnMain,
-                Err(subrust::eval::Error::Unsupported { reason }) => {
-                    Outcome::Unsupported { reason }
-                }
+                Err(subrust::eval::Error::Unsupported { reason }) => Outcome::Unsupported {
+                    reasons: vec![reason],
+                },
             }
         })
         .unwrap()
@@ -169,12 +173,14 @@ fn official_testsuite() {
             let outcome = test_file(entry.path());
             match outcome {
                 Outcome::Skipped | Outcome::SynFailed => {}
-                Outcome::Unsupported { mut reason } => {
-                    // HACK(eddyb) avoid polluting the output with very long AST dumps.
-                    if reason.len() > 81 {
-                        reason = format!("{}…{}", &reason[..40], &reason[reason.len() - 40..]);
+                Outcome::Unsupported { reasons } => {
+                    for mut reason in reasons {
+                        // HACK(eddyb) avoid polluting the output with very long AST dumps.
+                        if reason.len() > 81 {
+                            reason = format!("{}…{}", &reason[..40], &reason[reason.len() - 40..]);
+                        }
+                        *results.unsupported_counts.entry(reason).or_default() += 1;
                     }
-                    *results.unsupported_counts.entry(reason).or_default() += 1;
                 }
                 _ => {
                     results.reported_outcomes.insert(
