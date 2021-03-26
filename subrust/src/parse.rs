@@ -102,74 +102,104 @@ lower_syn_enums! {
     Lit { Str },
 }
 
+/// Helper used by the `unsupported(...)` feature in `lower_syn_structs!`.
+// HACK(eddyb) split into two traits for coherence reasons.
+trait IsAbsentViaEq {
+    fn is_absent(&self) -> bool;
+}
+trait IsAbsentCustom {
+    fn is_absent(&self) -> bool;
+}
+
+impl<T: Default + Eq> IsAbsentViaEq for T {
+    fn is_absent(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
+impl IsAbsentCustom for syn::Visibility {
+    fn is_absent(&self) -> bool {
+        match self {
+            syn::Visibility::Inherited => true,
+            _ => false,
+        }
+    }
+}
+
+impl IsAbsentCustom for syn::ReturnType {
+    fn is_absent(&self) -> bool {
+        match self {
+            syn::ReturnType::Default => true,
+            _ => false,
+        }
+    }
+}
+
 macro_rules! lower_syn_structs {
-    ($($name:ident { $($fields:tt)* } $(= $this:ident)? $(@ $span:ident)? $(if $cond:expr)? => $node:expr),* $(,)?) => {
+    (
+        $(
+            $name:ident { $($fields:tt)* }
+            $(= $this:ident)?
+            $(@ $span:ident)?
+            $(unsupported($($unsupported:expr),+ $(,)?))?
+            => $node:expr
+        ),* $(,)?
+    ) => {
         $(impl Lower for syn::$name {
             type Lowered = Node;
             fn lower(self) -> Result<NodeRef, Unsupported> {
                 let _span = syn::spanned::Spanned::span(&self);
-                match self {
-                    syn::$name { $($fields)* } => {
-                        $(let $this = self;)?
-                        $(let $span = _span;)?
-                        $(if !$cond {
-                            return Err(Unsupported {
-                                span: _span,
-                                reason: format!(
-                                    "{}: `{}` didn't hold",
-                                    stringify!($name),
-                                    stringify!($cond),
-                                ),
-                            });
-                        })?
-                        let _node = {
-                            #[allow(unused_imports)]
-                            use self::Node::*;
-                            $node
-                        };
-                        #[allow(unreachable_code)]
-                        Ok(Box::leak(Box::new(_node)))
-                    }
-                    #[allow(unreachable_patterns)]
-                    _ => Err(Unsupported {
+                #[deny(unused_variables)]
+                let syn::$name { $($fields)* } = self;
+                $(#[deny(unused_variables)] let $this = self;)?
+                $(#[deny(unused_variables)] let $span = _span;)?
+                $($(if !$unsupported.is_absent() {
+                    return Err(Unsupported {
                         span: _span,
                         reason: format!(
-                            "pattern `{}` didn't match",
-                            stringify!(syn::$name { $($fields)* }),
+                            "{}: has `{}`",
+                            stringify!($name),
+                            stringify!($unsupported),
                         ),
-                    }),
-                }
+                    });
+                })+)?
+                let _node = {
+                    #[allow(unused_imports)]
+                    use self::Node::*;
+                    $node
+                };
+                #[allow(unreachable_code)]
+                Ok(Box::leak(Box::new(_node)))
             }
         })*
     };
 }
 
-// HACK(eddyb) helper for checking that certain fields are set to default values.
-fn is_empty<T: Default + Eq>(x: T) -> bool {
-    x == T::default()
-}
-
 lower_syn_structs! {
-    File { shebang: _, attrs, items } if is_empty(attrs) => Mod(items.lower()?),
+    File { shebang: _, attrs, items } unsupported(attrs) => Mod(items.lower()?),
 
     ItemFn {
         attrs,
-        vis: syn::Visibility::Inherited,
+        vis,
         sig: syn::Signature {
-            constness: None,
-            asyncness: None,
-            unsafety: None,
-            abi: None,
+            constness,
+            asyncness,
+            unsafety,
+            abi,
             fn_token: _,
             ident,
             generics,
             paren_token: _,
             inputs,
-            variadic: None,
-            output: syn::ReturnType::Default,
+            variadic,
+            output,
         },
         block,
-    } if is_empty((attrs, generics, inputs))
+    } unsupported(
+        attrs, vis,
+        // FIXME(eddyb) shold probably lower `Signature` separately.
+        constness, asyncness, unsafety, abi, generics, inputs, variadic, output,
+    )
     => Fn { name: ident.lower()?, body: block.lower()? },
 
     // FIXME(eddyb) this doesn't seem to fit the rest that well.
@@ -205,16 +235,20 @@ lower_syn_structs! {
         return Ok(expr);
     },
 
-    ExprLit { attrs, lit } if is_empty(attrs) => return lit.lower(),
+    ExprLit { attrs, lit } unsupported(attrs) => return lit.lower(),
     ExprMacro {
         attrs,
         mac: syn::Macro {
-            path: syn::Path { leading_colon: None, segments },
+            path: syn::Path { leading_colon, segments },
             bang_token: _,
             delimiter: _,
             tokens,
         },
-    } if is_empty(attrs) && segments.len() == 1 && segments.first().unwrap().arguments.is_empty()
+    } unsupported(
+        attrs,
+        // FIXME(eddyb) shold probably lower `Path` separately.
+        leading_colon, segments.iter().skip(1).collect::<Vec<_>>(), &segments[0].arguments,
+    )
     => EMacCall {
         name: segments.into_iter().next().unwrap().ident.lower()?,
         args: Box::leak({
@@ -229,5 +263,5 @@ lower_syn_structs! {
         }),
     },
 
-    LitStr { .. } = lit if lit.suffix().is_empty() => LStr(Box::leak(lit.value().into())),
+    LitStr { .. } = lit unsupported(lit.suffix()) => LStr(Box::leak(lit.value().into())),
 }
