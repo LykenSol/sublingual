@@ -21,26 +21,38 @@ impl RuntimeEnv {
             .iter()
             .find(|def| matches!(def, Fn { name: "main", .. }))
             .ok_or(Error::NoFnMain)?;
-        self.eval_fn(fn_main)
+        self.eval_fn(fn_main, root_defs)
     }
 
-    pub fn eval_fn(&mut self, f: NodeRef) -> Result<(), Error> {
+    pub fn eval_fn(&mut self, f: NodeRef, root_defs: &[NodeRef]) -> Result<(), Error> {
         // FIXME(eddyb) make a macro that expects a certain type of `Node`.
         let body = match f {
             Fn { body, .. } => body,
             _ => unreachable!(),
         };
-        self.eval_expr(body)
+        self.eval_expr(body, root_defs)
     }
 
-    pub fn eval_expr(&mut self, e: NodeRef) -> Result<(), Error> {
+    pub fn eval_expr(&mut self, e: NodeRef, root_defs: &[NodeRef]) -> Result<(), Error> {
         match e {
             Mod(_) | Fn { .. } | ErrUnsupportedSyntax => unreachable!(),
 
             EUnit => Ok(()),
             ESeq(a, b) => {
-                self.eval_expr(a)?;
-                self.eval_expr(b)
+                self.eval_expr(a, root_defs)?;
+                self.eval_expr(b, root_defs)
+            }
+
+            ECall {
+                func: EPath { name: callee_name },
+            } => {
+                let f = root_defs
+                    .iter()
+                    .find(|def| matches!(def, Fn { name, .. } if callee_name == name))
+                    .ok_or_else(|| Error::Unsupported {
+                        reason: format!("function not found {:?}", callee_name),
+                    })?;
+                self.eval_fn(f, root_defs)
             }
 
             // FIXME(eddyb) name resolve (and even expand) macros.
@@ -56,7 +68,7 @@ impl RuntimeEnv {
                 reason: format!("unsupported macro `{}!` (with arguments `{:?})", name, args),
             }),
 
-            LStr(_) => Err(Error::Unsupported {
+            EPath { .. } | ECall { .. } | LStr(_) => Err(Error::Unsupported {
                 reason: format!("{:?}", e),
             }),
         }

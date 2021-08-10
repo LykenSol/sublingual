@@ -240,6 +240,7 @@
     "ui/lto-many-codegen-units.rs": RanSuccessfully {
         stdout: "",
     },
+    "ui/macros/auxiliary/macro-include-items-item.rs": NoFnMain,
     "ui/macros/macro-comma-support.rs": OnlyRustcFailed(
         ```
         error: lel
