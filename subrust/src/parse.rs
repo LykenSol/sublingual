@@ -21,6 +21,14 @@ pub enum Node {
     EUnit,
     /// `a; b`
     ESeq(NodeRef, NodeRef),
+    /// `name`
+    EPath {
+        name: &'static str,
+    },
+    /// `func()`
+    ECall {
+        func: NodeRef,
+    },
     /// `name!(...args)`
     EMacCall {
         name: &'static str,
@@ -134,7 +142,7 @@ macro_rules! lower_syn_enums {
 
 lower_syn_enums! {
     Item { Fn },
-    Expr { Lit, Macro },
+    Expr { Call, Lit, Macro, Path },
     Lit { Str },
 }
 
@@ -298,6 +306,8 @@ lower_syn_structs! {
         expr
     },
 
+    ExprCall { attrs, func, paren_token: _, args } unsupported(attrs, args)
+    => ECall { func: lower!(func) },
     ExprLit { attrs, lit } unsupported(attrs) => lower!(lit),
     ExprMacro {
         attrs,
@@ -329,6 +339,14 @@ lower_syn_structs! {
             lower!(args.into_iter().collect::<Vec<_>>())
         },
     },
+
+    ExprPath { attrs, qself, path: syn::Path { leading_colon, segments } }
+    unsupported(
+        attrs, qself,
+        // FIXME(eddyb) shold probably lower `Path` separately.
+        leading_colon, segments.iter().skip(1).collect::<Vec<_>>(), &segments[0].arguments,
+    )
+    => EPath { name: lower!(segments.into_iter().next().unwrap().ident) },
 
     LitStr { .. } = lit unsupported(lit.suffix()) => LStr(Box::leak(lit.value().into())),
 }
